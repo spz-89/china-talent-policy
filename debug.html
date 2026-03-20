@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>GitHub Pages 调试工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -212,12 +213,44 @@
         <div class="tips">
             <h3>💡 常见问题解决</h3>
             <ul>
-                <li><strong>Excel文件未找到：</strong>确保Excel文件已上传到GitHub仓库的根目录</li>
-                <li><strong>跨域错误：</strong>确保GitHub Pages已正确配置，使用https访问</li>
-                <li><strong>缓存问题：</strong>点击"清除缓存"按钮并刷新页面</li>
-                <li><strong>加载失败：</strong>检查浏览器控制台（F12）查看详细错误信息</li>
-                <li><strong>SheetJS未加载：</strong>检查网络连接，确保能访问cdn.jsdelivr.net</li>
+                <li><strong>所有文件显示404：</strong>
+                    <ul>
+                        <li>确认文件已推送到GitHub仓库根目录</li>
+                        <li>查看GitHub仓库的Code标签，确认文件存在</li>
+                        <li>等待GitHub Pages重新部署（1-2分钟）</li>
+                        <li>清除浏览器缓存（Ctrl+Shift+Delete）</li>
+                    </ul>
+                </li>
+                <li><strong>如何检查GitHub仓库：</strong>
+                    <ol>
+                        <li>点击下方的"访问GitHub仓库"按钮</li>
+                        <li>查看Code页面的文件列表</li>
+                        <li>确认以下文件都在仓库根目录：</li>
+                        <li style="font-family: monospace; color: #666; margin-left: 30px;">
+                            display.html, china.json, landmarks.js, 各地人才补贴.xlsx
+                        </li>
+                    </ol>
+                </li>
+                <li><strong>如果文件不在仓库中：</strong>
+                    <ol>
+                        <li>点击"Upload files"按钮</li>
+                        <li>将本地文件拖拽到上传区域</li>
+                        <li>填写提交信息，点击绿色按钮提交</li>
+                        <li>等待1-2分钟后刷新本页面</li>
+                    </ol>
+                </li>
             </ul>
+        </div>
+
+        <div class="section" style="margin-top: 30px; text-align: center;">
+            <h2 style="margin-bottom: 20px;">🔗 快速操作</h2>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="window.location.href='../'">🏠 返回首页</button>
+                <button onclick="clearLocalStorage()">🗑️ 清除缓存</button>
+                <button onclick="runDiagnostic()">🔄 重新检测</button>
+                <button onclick="showGitHubRepo()" style="background: #2ea44f;">📂 访问GitHub仓库</button>
+            </div>
+            <div id="githubRepoLink" style="margin-top: 15px; color: #666; font-size: 13px;"></div>
         </div>
     </div>
 
@@ -259,16 +292,18 @@
         async function checkFileStatus(filename) {
             try {
                 const url = `${window.location.origin}/${filename}`;
-                logToCustomConsole(`检查文件: ${filename}`);
+                logToCustomConsole(`检查文件: ${url}`);
                 const response = await fetch(url, { method: 'HEAD' });
                 if (response.ok) {
                     const size = response.headers.get('Content-Length');
+                    logToCustomConsole(`✅ ${filename} 正常 (${(size / 1024).toFixed(1)} KB)`, 'success');
                     return `<span class="status success">✅ 正常</span> (${(size / 1024).toFixed(1)} KB)`;
                 } else {
+                    logToCustomConsole(`❌ ${filename} 错误 ${response.status}`, 'error');
                     return `<span class="status error">❌ ${response.status}</span>`;
                 }
             } catch (error) {
-                logToCustomConsole(`检查 ${filename} 失败: ${error.message}`, 'error');
+                logToCustomConsole(`❌ 检查 ${filename} 失败: ${error.message}`, 'error');
                 return `<span class="status error">❌ 错误</span>`;
             }
         }
@@ -297,7 +332,8 @@
         }
 
         async function runDiagnostic() {
-            logToCustomConsole('开始诊断...', 'warning');
+            logToCustomConsole(`当前页面URL: ${window.location.href}`, 'warning');
+            logToCustomConsole(`当前Origin: ${window.location.origin}`, 'warning');
             
             const repo = detectGitHubRepo();
             
@@ -308,6 +344,10 @@
             
             // 清空console
             consoleDiv.innerHTML = '';
+            
+            // 重新显示URL信息
+            logToCustomConsole(`当前页面URL: ${window.location.href}`);
+            logToCustomConsole(`当前Origin: ${window.location.origin}`);
             
             // 检查文件
             updateElement('chinaJsonStatus', '检测中...');
@@ -359,9 +399,35 @@
             alert('缓存已清除！请刷新页面重新加载数据。');
         }
 
+        function showGitHubRepo() {
+            const currentUrl = window.location.href;
+            if (currentUrl.includes('github.io')) {
+                const match = currentUrl.match(/https?:\/\/([^/]+)\.github\.io\/([^/]+)/);
+                if (match) {
+                    const username = match[1];
+                    const repoName = match[2];
+                    const repoUrl = `https://github.com/${username}/${repoName}`;
+                    window.open(repoUrl, '_blank');
+                    return;
+                }
+            }
+            alert('无法检测到GitHub仓库地址，请手动访问你的GitHub仓库');
+        }
+
         // 页面加载时自动运行
         window.onload = function() {
             logToCustomConsole('页面加载完成', 'success');
+            
+            // 显示GitHub仓库链接
+            const currentUrl = window.location.href;
+            if (currentUrl.includes('github.io')) {
+                const match = currentUrl.match(/https?:\/\/([^/]+)\.github\.io\/([^/]+)/);
+                if (match) {
+                    const repoUrl = `https://github.com/${match[1]}/${match[2]}`;
+                    updateElement('githubRepoLink', `📂 仓库地址: <a href="${repoUrl}" target="_blank">${repoUrl}</a>`);
+                }
+            }
+            
             runDiagnostic();
         };
     </script>

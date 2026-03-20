@@ -6,16 +6,38 @@
 
 ### 方式一：GitHub Pages（推荐）
 
-#### 1. Fork本仓库
-点击页面右上角的" Fork"按钮
+#### 1. Fork本仓库或创建新仓库
+- 访问：https://github.com/spz-89/china-talent-policy
+- 如果仓库不存在，点击 "New repository" 创建
 
-#### 2. 启用GitHub Pages
-- 进入仓库Settings > Pages
-- 选择main分支，点击Save
-- 等待1-2分钟，访问：`https://你的用户名.github.io/仓库名/`
+#### 2. 上传文件
+**方法A：使用自动上传脚本（推荐）**
+```bash
+双击：upload-to-github.bat
+→ 按提示操作
+→ 等待上传完成
+```
 
-#### 3. 更新数据
-修改Excel文件并提交到GitHub，页面自动更新！
+**方法B：手动上传**
+1. 访问仓库：https://github.com/spz-89/china-talent-policy
+2. 点击 "Upload files"
+3. 拖拽以下文件：
+   - `display.html`
+   - `china.json`
+   - `landmarks.js`
+   - `各地人才补贴.xlsx`
+   - `debug.html`（可选）
+   - `README.md`（可选）
+4. 点击 "Commit changes"
+
+#### 3. 启用GitHub Pages
+1. 访问：https://github.com/spz-89/china-talent-policy/settings/pages
+2. 设置为：
+   - **Source:** Deploy from a branch
+   - **Branch:** main
+   - **Folder:** / (root) ← 重要！必须是根目录
+3. 点击 Save
+4. 等待1-2分钟，访问：https://spz-89.github.io/china-talent-policy/
 
 ---
 
