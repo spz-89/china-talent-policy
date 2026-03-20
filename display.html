@@ -406,15 +406,23 @@
 
         function detectGitHubRepo() {
             const currentUrl = window.location.href;
+            console.log('当前URL:', currentUrl);
+            
             if (currentUrl.includes('github.io')) {
                 const match = currentUrl.match(/https?:\/\/([^/]+)\.github\.io\/([^/]+)/);
                 if (match) {
                     const username = match[1];
                     const repoName = match[2];
                     CONFIG.githubRepo = `${username}/${repoName}`;
-                    console.log('自动检测到GitHub仓库:', CONFIG.githubRepo);
+                    console.log('✅ 自动检测到GitHub仓库:', CONFIG.githubRepo);
+                } else {
+                    console.warn('⚠️ 无法从URL解析GitHub仓库地址');
                 }
+            } else {
+                console.log('ℹ️ 非GitHub Pages环境，可能需要手动配置CONFIG.githubRepo');
             }
+            
+            console.log('📦 Excel文件配置:', CONFIG.dataFiles);
         }
         
         detectGitHubRepo();
@@ -451,40 +459,70 @@
         }
 
         function loadPolicyData() {
+            console.log('🔍 开始加载政策数据...');
+            console.log('GitHub仓库配置:', CONFIG.githubRepo);
+            
             try {
                 const storedData = localStorage.getItem('talentPolicyData');
                 const storedTime = localStorage.getItem('talentPolicyDataTime');
                 
                 if (storedData && storedTime) {
                     const dataAge = Date.now() - parseInt(storedTime);
+                    const hoursRemaining = Math.ceil((CONFIG.cacheDuration - dataAge) / (1000 * 60 * 60));
+                    console.log(`💾 缓存数据存在，剩余有效期: ${hoursRemaining}小时`);
+                    
                     if (dataAge < CONFIG.cacheDuration) {
-                        console.log('使用缓存数据');
+                        console.log('✅ 使用缓存数据');
                         return Promise.resolve(JSON.parse(storedData));
                     }
+                } else {
+                    console.log('ℹ️ 无缓存数据');
                 }
 
-                console.log('从GitHub加载最新数据');
+                console.log('🌐 准备从GitHub加载最新数据');
                 
-                const excelUrls = CONFIG.dataFiles.map(file => 
-                    `https://raw.githubusercontent.com/${CONFIG.githubRepo}/main/${file}`
-                );
+                // 检查SheetJS是否加载
+                if (typeof XLSX === 'undefined') {
+                    console.error('❌ SheetJS库未加载，请检查网络连接');
+                    return Promise.resolve({ data: [], meta: {} });
+                }
+                
+                const excelUrls = CONFIG.dataFiles.map(file => {
+                    const url = `${window.location.origin}/${file}`;
+                    console.log(`📄 Excel URL: ${url}`);
+                    return url;
+                });
 
-                return Promise.all(excelUrls.map(url => 
+                console.log(`📊 正在加载 ${excelUrls.length} 个Excel文件...`);
+
+                return Promise.all(excelUrls.map((url, index) => 
                     fetch(url)
                         .then(res => {
-                            if (!res.ok) throw new Error(`Failed to load ${url}`);
+                            if (!res.ok) {
+                                console.error(`❌ 加载Excel失败 [${index}]: ${url} - 状态码: ${res.status}`);
+                                throw new Error(`HTTP ${res.status}`);
+                            }
+                            console.log(`✅ Excel加载成功 [${index}]: ${url}`);
                             return res.arrayBuffer();
                         })
                         .then(buffer => {
+                            console.log(`📏 解析Excel [${index}]: ${buffer.byteLength} bytes`);
                             const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
                             const sheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[sheetName];
                             const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                            console.log(`📋 Excel [${index}] 解析出 ${jsonData.length} 条记录`);
                             return jsonData;
+                        })
+                        .catch(error => {
+                            console.error(`❌ 处理Excel [${index}] 失败:`, error);
+                            throw error;
                         })
                 ))
                 .then(allData => {
                     const combinedData = allData.flat();
+                    console.log(`🎉 数据加载完成，共 ${combinedData.length} 条记录`);
+                    
                     const result = {
                         data: combinedData,
                         meta: {
@@ -496,32 +534,44 @@
                     
                     localStorage.setItem('talentPolicyData', JSON.stringify(result));
                     localStorage.setItem('talentPolicyDataTime', Date.now().toString());
+                    console.log('✅ 数据已缓存到localStorage');
                     
                     return result;
                 })
                 .catch(error => {
-                    console.error('从GitHub加载数据失败:', error);
+                    console.error('🚨 从GitHub加载数据失败:', error);
                     
                     if (storedData) {
-                        console.log('使用旧缓存数据');
+                        console.log('🔙 使用旧缓存数据');
                         return Promise.resolve(JSON.parse(storedData));
                     }
                     
+                    console.error('❌ 无法加载任何数据，返回空数组');
                     return Promise.resolve({ data: [], meta: {} });
                 });
             } catch (error) {
-                console.error('加载数据失败:', error);
+                console.error('💥 加载数据异常:', error);
                 return Promise.resolve({ data: [], meta: {} });
             }
         }
 
         function noDataError() {
+            console.warn('⚠️ 显示无数据错误页面');
             document.getElementById('info').innerHTML = `
                 <div class="no-data">
                     <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                    <div style="font-size: 18px; margin-bottom: 15px;">暂无数据</div>
+                    <div style="font-size: 18px; margin-bottom: 15px;">暂无政策数据</div>
                     <div style="font-size: 14px; color: #999; line-height: 2;">
-                        请先使用管理后台上传数据
+                        <strong>可能的原因：</strong><br>
+                        1. Excel文件未上传到GitHub仓库<br>
+                        2. Excel文件路径不正确<br>
+                        3. 网络连接问题<br>
+                        <br>
+                        <strong>解决方案：</strong><br>
+                        • 打开浏览器控制台（F12）查看详细错误信息<br>
+                        • 确认Excel文件已上传到GitHub仓库<br>
+                        • 确认文件名与配置一致：${CONFIG.dataFiles.join(' 或 ')}<br>
+                        • 尝试刷新页面或清除缓存<br>
                     </div>
                 </div>
             `;

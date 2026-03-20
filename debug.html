@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>GitHub Pages 调试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .info-label {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #333;
+            font-weight: bold;
+            word-break: break-all;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+        .console .log {
+            padding: 3px 0;
+        }
+        .console .error {
+            color: #f48771;
+        }
+        .console .success {
+            color: #89d185;
+        }
+        .console .warning {
+            color: #dcdcaa;
+        }
+        .tips {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .tips h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .tips ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+        .tips li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 GitHub Pages 调试工具</h1>
+
+        <div class="section">
+            <h2>📊 环境信息</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">当前URL</div>
+                    <div class="info-value" id="currentUrl">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">检测到的仓库</div>
+                    <div class="info-value" id="detectedRepo">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">SheetJS库</div>
+                    <div class="info-value" id="sheetjsStatus">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Excel文件</div>
+                    <div class="info-value" id="excelFile">各地人才补贴.xlsx</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📄 文件检测</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">china.json</div>
+                    <div class="info-value" id="chinaJsonStatus">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">landmarks.js</div>
+                    <div class="info-value" id="landmarksJsStatus">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">各地人才补贴.xlsx</div>
+                    <div class="info-value" id="excelStatus">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">display.html</div>
+                    <div class="info-value" id="displayHtmlStatus">检测中...</div>
+                </div>
+            </div>
+            <button onclick="runDiagnostic()">🔄 重新检测</button>
+        </div>
+
+        <div class="section">
+            <h2>💾 LocalStorage 检查</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">talentPolicyData</div>
+                    <div class="info-value" id="localStorageData">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">数据更新时间</div>
+                    <div class="info-value" id="localStorageTime">检测中...</div>
+                </div>
+            </div>
+            <button onclick="clearLocalStorage()">🗑️ 清除缓存</button>
+        </div>
+
+        <div class="section">
+            <h2>🖥️ 控制台日志</h2>
+            <div class="console" id="console">
+                <div class="log">等待加载...</div>
+            </div>
+        </div>
+
+        <div class="tips">
+            <h3>💡 常见问题解决</h3>
+            <ul>
+                <li><strong>Excel文件未找到：</strong>确保Excel文件已上传到GitHub仓库的根目录</li>
+                <li><strong>跨域错误：</strong>确保GitHub Pages已正确配置，使用https访问</li>
+                <li><strong>缓存问题：</strong>点击"清除缓存"按钮并刷新页面</li>
+                <li><strong>加载失败：</strong>检查浏览器控制台（F12）查看详细错误信息</li>
+                <li><strong>SheetJS未加载：</strong>检查网络连接，确保能访问cdn.jsdelivr.net</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        
+        function logToCustomConsole(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function updateElement(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        }
+
+        function detectGitHubRepo() {
+            const currentUrl = window.location.href;
+            const urlDisplay = currentUrl.substring(0, 50) + (currentUrl.length > 50 ? '...' : '');
+            updateElement('currentUrl', urlDisplay);
+            
+            if (currentUrl.includes('github.io')) {
+                const match = currentUrl.match(/https?:\/\/([^/]+)\.github\.io\/([^/]+)/);
+                if (match) {
+                    const username = match[1];
+                    const repoName = match[2];
+                    const repo = `${username}/${repoName}`;
+                    updateElement('detectedRepo', `${repo} <span class="status success">✅</span>`);
+                    return repo;
+                }
+            }
+            updateElement('detectedRepo', '未检测到 <span class="status pending">⚠️</span>');
+            return null;
+        }
+
+        async function checkFileStatus(filename) {
+            try {
+                const url = `${window.location.origin}/${filename}`;
+                logToCustomConsole(`检查文件: ${filename}`);
+                const response = await fetch(url, { method: 'HEAD' });
+                if (response.ok) {
+                    const size = response.headers.get('Content-Length');
+                    return `<span class="status success">✅ 正常</span> (${(size / 1024).toFixed(1)} KB)`;
+                } else {
+                    return `<span class="status error">❌ ${response.status}</span>`;
+                }
+            } catch (error) {
+                logToCustomConsole(`检查 ${filename} 失败: ${error.message}`, 'error');
+                return `<span class="status error">❌ 错误</span>`;
+            }
+        }
+
+        async function checkExcelFile(filename) {
+            try {
+                const url = `${window.location.origin}/${filename}`;
+                logToCustomConsole(`检查Excel文件: ${filename}`);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const buffer = await response.arrayBuffer();
+                if (typeof XLSX === 'undefined') {
+                    throw new Error('SheetJS未加载');
+                }
+                const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                return `<span class="status success">✅ 可用</span> (${jsonData.length} 条记录)`;
+            } catch (error) {
+                logToCustomConsole(`Excel文件检查失败: ${error.message}`, 'error');
+                return `<span class="status error">❌ ${error.message}</span>`;
+            }
+        }
+
+        async function runDiagnostic() {
+            logToCustomConsole('开始诊断...', 'warning');
+            
+            const repo = detectGitHubRepo();
+            
+            // 检查SheetJS
+            updateElement('sheetjsStatus', typeof XLSX !== 'undefined' 
+                ? '<span class="status success">✅ 已加载</span>' 
+                : '<span class="status error">❌ 未加载</span>');
+            
+            // 清空console
+            consoleDiv.innerHTML = '';
+            
+            // 检查文件
+            updateElement('chinaJsonStatus', '检测中...');
+            updateElement('chinaJsonStatus', await checkFileStatus('china.json'));
+            
+            updateElement('landmarksJsStatus', '检测中...');
+            updateElement('landmarksJsStatus', await checkFileStatus('landmarks.js'));
+            
+            updateElement('excelStatus', '检测中...');
+            updateElement('excelStatus', await checkExcelFile('各地人才补贴.xlsx'));
+            
+            updateElement('displayHtmlStatus', '检测中...');
+            updateElement('displayHtmlStatus', await checkFileStatus('display.html'));
+            
+            // 检查localStorage
+            checkLocalStorage();
+            
+            logToCustomConsole('诊断完成', 'success');
+        }
+
+        function checkLocalStorage() {
+            const data = localStorage.getItem('talentPolicyData');
+            const time = localStorage.getItem('talentPolicyDataTime');
+            
+            if (data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    updateElement('localStorageData', `<span class="status success">✅ 存在</span> (${parsed.meta?.totalRecords || 0} 条)`);
+                } catch {
+                    updateElement('localStorageData', '<span class="status error">❌ 损坏</span>');
+                }
+            } else {
+                updateElement('localStorageData', '<span class="status pending">⚠️ 无数据</span>');
+            }
+            
+            if (time) {
+                const date = new Date(parseInt(time));
+                updateElement('localStorageTime', `<span class="status success">${date.toLocaleString()}</span>`);
+            } else {
+                updateElement('localStorageTime', '<span class="status pending">⚠️ 无时间</span>');
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('talentPolicyData');
+            localStorage.removeItem('talentPolicyDataTime');
+            logToCustomConsole('缓存已清除', 'warning');
+            checkLocalStorage();
+            alert('缓存已清除！请刷新页面重新加载数据。');
+        }
+
+        // 页面加载时自动运行
+        window.onload = function() {
+            logToCustomConsole('页面加载完成', 'success');
+            runDiagnostic();
+        };
+    </script>
+</body>
+</html>
