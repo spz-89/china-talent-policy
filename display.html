@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>中国人才补贴政策地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="landmarks.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .policy-group {
+            margin-bottom: 20px;
+            border: 1px solid #e8ecf1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+        }
+        .group-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .group-content {
+            padding: 10px 0;
+        }
+        .education {
+            color: #f5576c;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            padding: 4px 0;
+        }
+        .map-tip {
+            margin-top: 20px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border-left: 4px solid #ffc107;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 13px;
+            text-align: center;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 35px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 38px;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .header p {
+            font-size: 17px;
+            opacity: 0.95;
+        }
+        .main-content {
+            display: flex;
+            gap: 25px;
+            padding: 25px;
+            max-width: 1900px;
+            margin: 0 auto;
+        }
+        .map-container {
+            flex: 2;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        #map {
+            width: 100%;
+            height: 680px;
+        }
+        .info-container {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-height: 680px;
+            overflow-y: auto;
+        }
+        .breadcrumb {
+            margin-bottom: 18px;
+            padding: 12px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .breadcrumb span {
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .breadcrumb span:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span:last-child {
+            color: #333;
+            cursor: default;
+        }
+        .breadcrumb span + span::before {
+            content: ' > ';
+            color: #999;
+            margin: 0 6px;
+        }
+        .policy-item {
+            padding: 20px;
+            margin-bottom: 18px;
+            border: 2px solid #e8ecf1;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+        }
+        .policy-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 6px 20px rgba(102,126,234,0.2);
+            transform: translateY(-3px);
+        }
+        .policy-item .city {
+            color: #667eea;
+            font-size: 15px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .policy-item .title {
+            font-size: 19px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .policy-item .content {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .policy-item .link-btn {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 9px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(102,126,234,0.3);
+        }
+        .policy-item .link-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.5);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 950px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 95%;
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 32px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+            font-weight: bold;
+        }
+        .modal-close:hover {
+            color: #333;
+            transform: rotate(90deg);
+        }
+        .modal h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            padding-bottom: 18px;
+            border-bottom: 3px solid #667eea;
+            font-size: 26px;
+            font-weight: bold;
+        }
+        .detail-item {
+            padding: 20px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .detail-value {
+            color: #666;
+            line-height: 1.9;
+            font-size: 15px;
+            white-space: pre-wrap;
+        }
+        .detail-link {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 17px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(240,147,251,0.4);
+        }
+        .detail-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(240,147,251,0.6);
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+        .info-content {
+            flex: 1;
+            color: #666;
+        }
+        .info-link {
+            display: inline-block;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .info-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.5);
+        }
+        .landmark-badge {
+            display: inline-block;
+            width: 80px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        .landmark-badge img {
+            width: 100%;
+            height: auto;
+            max-height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        .location-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .location-fields {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .location-link {
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-start;
+            margin-top: 5px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 17px;
+        }
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #667eea;
+            font-size: 19px;
+        }
+        .education {
+            color: #f5576c;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            padding: 4px 0;
+        }
+        .map-tip {
+            margin-top: 20px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border-left: 4px solid #ffc107;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 13px;
+            text-align: center;
+        }
+        .landmark-image {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .landmark-image img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .info-container {
+                max-height: 500px;
+            }
+            #map {
+                height: 550px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🇨🇳 中国人才补贴政策地图</h1>
+        <p>点击省份查看各地区人才补贴政策详情</p>
+    </div>
+
+    <div class="main-content">
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <div class="info-container">
+            <div class="breadcrumb" id="breadcrumb">
+                <span onclick="resetMap()">全国</span>
+            </div>
+            <div id="info">
+                <div class="loading">📊 正在加载数据，请稍候...</div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        let policyData = [];
+        let currentProvince = null;
+        let currentPolicy = null;
+        let dataMeta = {};
+
+        const CONFIG = {
+            githubRepo: 'YOUR_USERNAME/YOUR_REPO',
+            dataFiles: [
+                '各地人才补贴.xlsx'
+            ],
+            cacheDuration: 24 * 60 * 60 * 1000
+        };
+
+        function detectGitHubRepo() {
+            const currentUrl = window.location.href;
+            if (currentUrl.includes('github.io')) {
+                const match = currentUrl.match(/https?:\/\/([^/]+)\.github\.io\/([^/]+)/);
+                if (match) {
+                    const username = match[1];
+                    const repoName = match[2];
+                    CONFIG.githubRepo = `${username}/${repoName}`;
+                    console.log('自动检测到GitHub仓库:', CONFIG.githubRepo);
+                }
+            }
+        }
+        
+        detectGitHubRepo();
+
+        function loadData() {
+            Promise.all([
+                loadMapData(),
+                loadPolicyData()
+            ]).then(([chinaMap, policyResult]) => {
+                policyData = policyResult.data;
+                dataMeta = policyResult.meta || {};
+                
+                if (policyData.length === 0) {
+                    noDataError();
+                    return;
+                }
+                
+                initMap(chinaMap);
+            }).catch(error => {
+                console.error('加载数据失败:', error);
+                noDataError();
+            });
+        }
+
+        function loadMapData() {
+            return Promise.resolve()
+                .then(() => fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'))
+                .then(res => {
+                    if (!res.ok) return fetch('china.json');
+                    return res;
+                })
+                .then(res => res.json())
+                .catch(() => fetch('china.json').then(res => res.json()));
+        }
+
+        function loadPolicyData() {
+            try {
+                const storedData = localStorage.getItem('talentPolicyData');
+                const storedTime = localStorage.getItem('talentPolicyDataTime');
+                
+                if (storedData && storedTime) {
+                    const dataAge = Date.now() - parseInt(storedTime);
+                    if (dataAge < CONFIG.cacheDuration) {
+                        console.log('使用缓存数据');
+                        return Promise.resolve(JSON.parse(storedData));
+                    }
+                }
+
+                console.log('从GitHub加载最新数据');
+                
+                const excelUrls = CONFIG.dataFiles.map(file => 
+                    `https://raw.githubusercontent.com/${CONFIG.githubRepo}/main/${file}`
+                );
+
+                return Promise.all(excelUrls.map(url => 
+                    fetch(url)
+                        .then(res => {
+                            if (!res.ok) throw new Error(`Failed to load ${url}`);
+                            return res.arrayBuffer();
+                        })
+                        .then(buffer => {
+                            const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                            return jsonData;
+                        })
+                ))
+                .then(allData => {
+                    const combinedData = allData.flat();
+                    const result = {
+                        data: combinedData,
+                        meta: {
+                            totalRecords: combinedData.length,
+                            updateTime: new Date().toLocaleString(),
+                            fileName: CONFIG.dataFiles.join(', ')
+                        }
+                    };
+                    
+                    localStorage.setItem('talentPolicyData', JSON.stringify(result));
+                    localStorage.setItem('talentPolicyDataTime', Date.now().toString());
+                    
+                    return result;
+                })
+                .catch(error => {
+                    console.error('从GitHub加载数据失败:', error);
+                    
+                    if (storedData) {
+                        console.log('使用旧缓存数据');
+                        return Promise.resolve(JSON.parse(storedData));
+                    }
+                    
+                    return Promise.resolve({ data: [], meta: {} });
+                });
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                return Promise.resolve({ data: [], meta: {} });
+            }
+        }
+
+        function noDataError() {
+            document.getElementById('info').innerHTML = `
+                <div class="no-data">
+                    <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                    <div style="font-size: 18px; margin-bottom: 15px;">暂无数据</div>
+                    <div style="font-size: 14px; color: #999; line-height: 2;">
+                        请先使用管理后台上传数据
+                    </div>
+                </div>
+            `;
+        }
+
+        function initMap(chinaMap) {
+            chart = echarts.init(document.getElementById('map'));
+            echarts.registerMap('china', chinaMap);
+
+            const provinceData = getProvinceChartData();
+            
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    borderColor: '#667eea',
+                    textStyle: {
+                        color: '#333'
+                    }
+                },
+                visualMap: {
+                    min: 0,
+                    max: Math.max(...Object.values(getProvinceCount()), 1),
+                    left: 'left',
+                    bottom: 'bottom',
+                    text: ['多', '少'],
+                    calculable: true,
+                    inRange: {
+                        color: ['#a5d8ff', '#4a90e2', '#2d5aa0']
+                    },
+                    textStyle: {
+                        color: '#666'
+                    },
+                    show: true
+                }
+            };
+
+            option.series = [{
+                type: 'map',
+                map: 'china',
+                roam: true,
+                label: {
+                    show: true,
+                    fontSize: 11,
+                    color: '#333'
+                },
+                itemStyle: {
+                    normal: {
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        areaColor: '#e8ecf1'
+                    },
+                    emphasis: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(102,126,234,0.5)',
+                        areaColor: '#667eea'
+                    }
+                },
+                data: provinceData
+            }];
+
+            chart.setOption(option);
+            chart.on('click', handleMapClick);
+
+            window.onresize = function() {
+                chart.resize();
+            };
+
+            document.getElementById('info').innerHTML = '<div class="no-data">请点击地图上的省份查看政策详情</div>';
+        }
+
+        function getProvinceCount() {
+            const count = {};
+            const provinces = ['北京市','天津市','河北省','山西省','内蒙古自治区','辽宁省','吉林省','黑龙江省',
+                            '上海市','江苏省','浙江省','安徽省','福建省','江西省','山东省','河南省','湖北省',
+                            '湖南省','广东省','广西壮族自治区','海南省','重庆市','四川省','贵州省','云南省',
+                            '西藏自治区','陕西省','甘肃省','青海省','宁夏回族自治区','新疆维吾尔自治区','台湾省',
+                            '香港特别行政区','澳门特别行政区'];
+            
+            provinces.forEach(p => count[p] = 0);
+
+            policyData.forEach(item => {
+                if (count.hasOwnProperty(item.province)) {
+                    count[item.province]++;
+                }
+            });
+
+            return count;
+        }
+
+        function getProvinceChartData() {
+            const count = getProvinceCount();
+            return Object.keys(count).map(p => ({
+                name: p,
+                value: count[p]
+            }));
+        }
+
+        function handleMapClick(params) {
+            const province = params.name;
+            showProvincePolicies(province);
+        }
+
+        function renderPolicyItem(item) {
+            const locationInfo = [item.city, item.district].filter(x => x).join(' - ');
+            const locationLabel = locationInfo || '全省/全国';
+            
+            return `
+                <div class="policy-item" onclick='showPolicyDetail(${JSON.stringify(item).replace(/'/g, "\\u0027")})'>
+                    <div class="city">📍 ${locationLabel}</div>
+                    <div class="title">${item.title}</div>
+                    <div class="content">${item.content}</div>
+                    ${item.education ? `<div class="education">🎓 ${item.education}</div>` : ''}
+                    ${item.url ? `<a href="${item.url}" target="_blank" class="link-btn" onclick="event.stopPropagation()">🔗 查看政策详情</a>` : ''}
+                </div>
+            `;
+        }
+
+        function showProvincePolicies(province) {
+            currentProvince = province;
+            const list = policyData.filter(p => p.province === province);
+
+            updateBreadcrumb([province]);
+
+            if (list.length === 0) {
+                document.getElementById('info').innerHTML = '<div class="no-data">暂无该省份的政策数据</div>';
+                return;
+            }
+
+            const groups = {};
+            const levelOrder = ['国家级', '省级', '市级', '区级'];
+            
+            levelOrder.forEach(level => {
+                groups[level] = [];
+            });
+            
+            groups['其他'] = [];
+            
+            list.forEach(item => {
+                const level = item.level || '未分类';
+                if (groups[level]) {
+                    groups[level].push(item);
+                } else {
+                    groups['其他'].push(item);
+                }
+            });
+            
+            let html = '';
+            levelOrder.forEach(level => {
+                if (groups[level] && groups[level].length > 0) {
+                    html += `
+                        <div class="policy-group">
+                            <div class="group-header">【${level}】${groups[level].length}条</div>
+                            <div class="group-content">
+                                ${groups[level].map(item => renderPolicyItem(item)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            if (groups['其他'] && groups['其他'].length > 0) {
+                html += `
+                    <div class="policy-group">
+                        <div class="group-header">【其他】${groups['其他'].length}条</div>
+                        <div class="group-content">
+                            ${groups['其他'].map(item => renderPolicyItem(item)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="map-tip">
+                    💡 提示：将鼠标滚轮放在地图上滚动可放大或缩小地图
+                </div>
+            `;
+            
+            document.getElementById('info').innerHTML = html;
+        }
+
+        function showPolicyDetail(item) {
+            currentPolicy = item;
+            updateBreadcrumb([currentProvince, item.title]);
+
+            const landmarkImage = window.getLandmarkImage ? window.getLandmarkImage(item.province, item.city) : '';
+
+            let detailHtml = `
+                <h2>${item.title}</h2>
+                
+                <div class="detail-item">
+                    <div class="detail-label">📍 地区信息</div>
+                    <div class="detail-value">
+                        <div class="location-layout">
+                            ${landmarkImage ? `
+                            <div class="landmark-badge">
+                                <img src="${landmarkImage}" alt="${item.city || item.province}地标" onerror="this.style.display='block';this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%22120%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23f0f0f0%22></rect><text x=%2240%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22>🏛️</text></svg>'">
+                            </div>
+                            ` : ''}
+                            <div class="location-fields">
+                                <div class="info-row">
+                                    <span class="info-label">省份：</span>
+                                    <span class="info-content">${item.province}</span>
+                                </div>
+                                ${item.city ? `
+                                <div class="info-row">
+                                    <span class="info-label">城市：</span>
+                                    <span class="info-content">${item.city}</span>
+                                </div>
+                                ` : ''}
+                                ${item.district ? `
+                                <div class="info-row">
+                                    <span class="info-label">区县：</span>
+                                    <span class="info-content">${item.district}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                            ${item.url ? `
+                            <div class="location-link">
+                                <a href="${item.url}" target="_blank" class="info-link">🔗 查看政策链接</a>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${item.level ? `
+                <div class="detail-item">
+                    <div class="detail-label">📊 政策级别</div>
+                    <div class="detail-value">${item.level}</div>
+                </div>
+                ` : ''}
+                
+                ${item.education ? `
+                <div class="detail-item">
+                    <div class="detail-label">🎓 学历要求</div>
+                    <div class="detail-value">${item.education}</div>
+                </div>
+                ` : ''}
+                
+                <div class="detail-item">
+                    <div class="detail-label">💰 补贴内容</div>
+                    <div class="detail-value">${item.content}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <div class="detail-label">📋 申请条件</div>
+                    <div class="detail-value">${item.type || '请咨询当地相关部门'}</div>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = detailHtml;
+            document.getElementById('detailModal').style.display = 'block';
+        }
+
+        function updateBreadcrumb(items) {
+            let html = '<span onclick="resetMap()">全国</span>';
+            items.forEach((item, index) => {
+                if (index === 0) {
+                    html += `<span>${item}</span>`;
+                } else {
+                    html += `<span>${item}</span>`;
+                }
+            });
+            document.getElementById('breadcrumb').innerHTML = html;
+        }
+
+        function updateDataSourceInfo() {
+            const uploadTime = localStorage.getItem('talentPolicyDataTime');
+            const infoBox = document.getElementById('dataInfoText');
+            
+            if (uploadTime) {
+                infoBox.innerHTML = `
+                    <strong>数据更新时间：</strong>${uploadTime}<br>
+                    <strong>总记录数：</strong>${dataMeta.totalRecords || policyData.length} 条<br>
+                    <strong>数据来源：</strong>${dataMeta.fileName || '未记录'}
+                `;
+            } else {
+                infoBox.innerHTML = `<strong>总记录数：</strong>${policyData.length} 条`;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function resetMap() {
+            currentProvince = null;
+            currentPolicy = null;
+            updateBreadcrumb([]);
+            document.getElementById('info').innerHTML = '<div class="no-data">请点击地图上的省份查看政策详情</div>';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

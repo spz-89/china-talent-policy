@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>人才补贴政策地图 - 管理后台 v2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .content {
+            padding: 40px;
+        }
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 50px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .upload-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.4);
+        }
+        .file-input {
+            display: none;
+        }
+        .file-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .file-info-item {
+            margin: 10px 0;
+            font-size: 15px;
+            color: #666;
+        }
+        .file-info-item strong {
+            color: #333;
+        }
+        .preview-box {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .preview-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-item {
+            flex: 1;
+            padding: 20px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .btn-save {
+            flex: 2;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(56,239,125,0.4);
+        }
+        .btn-view {
+            flex: 1;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-view:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(240,147,251,0.4);
+        }
+        .status-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .guide-text {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 管理后台 v2.0</h1>
+            <p>上传Excel数据，一次上传，立即可用</p>
+        </div>
+
+        <div class="content">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📊</div>
+                <p style="font-size: 20px; color: #333; margin-bottom: 10px;">点击选择Excel文件</p>
+                <p style="font-size: 14px; color: #999;">支持格式：.xlsx, .xls</p>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" />
+                <button class="upload-btn">选择文件</button>
+            </div>
+
+            <div class="file-info" id="fileInfo" style="display: none;"></div>
+
+            <div class="preview-box" id="preview-box" style="display: none;">
+                <div class="preview-title">📊 数据预览</div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="recordCount">0</div>
+                        <div class="stat-label">总记录数</div>
+                    </div>
+                    <div class="stat-item" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <div class="stat-number" id="provinceCount">0</div>
+                        <div class="stat-label">覆盖省份</div>
+                    </div>
+                    <div class="stat-item" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+                        <div class="stat-number" id="linkCount">0</div>
+                        <div class="stat-label">包含链接</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons" id="action-buttons" style="display: none;">
+                <button class="btn-save" onclick="saveData()">💾 保存数据并查看</button>
+                <button class="btn-view" onclick="viewNow()">👀 先看现有数据</button>
+            </div>
+
+            <div class="status-box" id="statusBox"></div>
+
+            <div class="guide-text">
+                <strong>💡 使用说明：</strong><br>
+                1. 点击上方按钮上传Excel文件<br>
+                2. 系统自动识别数据（省份、城市、政策名称、链接等）<br>
+                3. 点击"保存数据并查看"，数据立即保存到展示页面<br>
+                4. 一次上传，永远使用，无需重复操作<br><br>
+                <strong>🎯 优势：</strong> 不需要导出文件、不需要复制粘贴、数据自动同步
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = [];
+        let currentFileName = '';
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            currentFileName = file.name;
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <div class="file-info-item"><strong>文件名：</strong>${file.name}</div>
+                <div class="file-info-item"><strong>文件大小：</strong>${(file.size/1024).toFixed(2)} KB</div>
+                <div class="file-info-item"><strong>上传状态：</strong>✅ 文件已选择，正在解析...</div>
+            `;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                    currentData = parseExcelData(jsonData);
+                    showPreview();
+
+                    fileInfo.innerHTML += `
+                        <div class="file-info-item"><strong>上传状态：</strong>✅ 解析成功，共 ${currentData.length} 条记录</div>
+                    `;
+
+                } catch (error) {
+                    console.error('文件解析错误:', error);
+                    showStatus('❌ 文件解析失败，请检查文件格式！', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseExcelData(data) {
+            return data.map((row, index) => {
+                const result = {
+                    id: index + 1,
+                    province: '',
+                    city: '',
+                    district: '',
+                    level: '',
+                    education: '',
+                    title: '',
+                    content: '',
+                    type: '',
+                    url: '',
+                    details: {}
+                };
+
+                Object.keys(row).forEach(key => {
+                    const value = row[key] || '';
+                    result.details[key] = value;
+
+                    const keyLower = key.toLowerCase();
+                    
+                    if (keyLower.includes('省份') || keyLower.includes('省/市') || keyLower.includes('区域')) {
+                        result.province = value;
+                    } else if (keyLower.includes('城市') || keyLower.includes('市/区') || keyLower.includes('地区')) {
+                        result.city = value;
+                    } else if (keyLower.includes('区') && !keyLower.includes('城市') && !keyLower.includes('地区')) {
+                        result.district = value;
+                    } else if (keyLower.includes('级别') || keyLower.includes('level')) {
+                        result.level = value;
+                    } else if (keyLower.includes('学历')) {
+                        result.education = value;
+                    } else if (keyLower.includes('补贴名称') || keyLower.includes('项目名称') || keyLower.includes('政策名称') || keyLower.includes('名称')) {
+                        result.title = value;
+                    } else if (keyLower.includes('补贴内容') || keyLower.includes('补贴金额') || keyLower.includes('政策内容') || keyLower.includes('金额') || keyLower.includes('内容')) {
+                        result.content = value;
+                    } else if (keyLower.includes('条件')) {
+                        result.type = value;
+                    } else if (keyLower.includes('链接') || keyLower.includes('url') || keyLower.includes('地址') || keyLower.includes('网址')) {
+                        result.url = value;
+                    }
+                });
+
+                return result;
+            }).filter(p => p.province && p.title);
+        }
+
+        function showPreview() {
+            const provinces = [...new Set(currentData.map(p => p.province))];
+            const linkCount = currentData.filter(p => p.url).length;
+
+            document.getElementById('recordCount').textContent = currentData.length;
+            document.getElementById('provinceCount').textContent = provinces.length;
+            document.getElementById('linkCount').textContent = linkCount;
+
+            document.getElementById('preview-box').style.display = 'block';
+            document.getElementById('action-buttons').style.display = 'flex';
+        }
+
+        function saveData() {
+            if (currentData.length === 0) {
+                showStatus('❌ 没有数据可以保存！', 'error');
+                return;
+            }
+
+            try {
+                const timestamp = new Date().toISOString();
+                const exportData = {
+                    data: currentData,
+                    meta: {
+                        fileName: currentFileName,
+                        uploadTime: timestamp,
+                        totalRecords: currentData.length,
+                        version: '2.0'
+                    }
+                };
+
+                localStorage.setItem('talentPolicyData', JSON.stringify(exportData));
+                localStorage.setItem('talentPolicyDataTime', new Date().toLocaleString('zh-CN'));
+
+                showStatus('✅ 数据保存成功！共 ' + currentData.length + ' 条记录，正在跳转到展示页面...', 'success');
+
+                setTimeout(() => {
+                    window.open('display.html', '_blank');
+                }, 1500);
+
+            } catch (error) {
+                console.error('保存数据错误:', error);
+                showStatus('❌ 保存失败：' + error.message, 'error');
+            }
+        }
+
+        function viewNow() {
+            window.open('display.html', '_blank');
+        }
+
+        function showStatus(message, type) {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.style.display = 'block';
+            statusBox.className = 'status-box status-' + type;
+            statusBox.innerHTML = '<strong>' + message + '</strong>';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusBox.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
